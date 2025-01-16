@@ -33,7 +33,7 @@ extension LLMOpenAISession {
             }
 
             self.wrappedModel = OpenAI(
-                configuration: configuration
+                configuration: configuration!
             )
         } else {
             // If token is present within the Spezi `SecureStorage`
@@ -63,7 +63,7 @@ extension LLMOpenAISession {
 
             // Initialize the OpenAI model
             self.wrappedModel = OpenAI(
-                configuration: configuration
+                configuration: configuration!
             )
         }
         
