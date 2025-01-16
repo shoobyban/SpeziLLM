@@ -85,7 +85,7 @@ public final class LLMOpenAISession: LLMSession, @unchecked Sendable {
     @MainActor public var context: LLMContext = []
     @ObservationIgnored var wrappedModel: OpenAI?
     
-    var configuration: OpenAI.Configuration?
+    public var configuration: OpenAI.Configuration?
     
     var model: OpenAI {
         guard let model = wrappedModel else {
