@@ -8,7 +8,7 @@
 
 import Foundation
 import OpenAI
-
+import SpeziSecureStorage
 
 extension LLMOpenAISession {
     /// Set up the OpenAI LLM execution client.
@@ -24,25 +24,26 @@ extension LLMOpenAISession {
 
         // Overwrite API token if passed
         if let overwritingToken = schema.parameters.overwritingToken {
-            var config = Configuration.init(
-                token: overwritingToken,
-                timeoutInterval: platform.configuration.timeout
-            )
 
-            if configuration != nil {
-                config = configuration!
+            if configuration == nil {
+                configuration = OpenAI.Configuration.init(
+                    token: overwritingToken,
+                    timeoutInterval: platform.configuration.timeout
+                )
             }
 
             self.wrappedModel = OpenAI(
-                configuration: config
+                configuration: configuration
             )
         } else {
             // If token is present within the Spezi `SecureStorage`
+            var credentials: Credentials?
             if configuration == nil {
-                guard let credentials = try? secureStorage.retrieveCredentials(
+                credentials = try? secureStorage.retrieveCredentials(
                     LLMOpenAIConstants.credentialsUsername,
                     server: LLMOpenAIConstants.credentialsServer
-                ) else {
+                )
+                if credentials == nil {
                     Self.logger.error("""
                     SpeziLLMOpenAI: Missing OpenAI API token.
                     Please ensure that the token is either passed directly via the Spezi `Configuration`
@@ -53,18 +54,16 @@ extension LLMOpenAISession {
                 }
             }
             
-            var config = Configuration.init(
-                    token: credentials.password,
+            if configuration == nil {
+                configuration = OpenAI.Configuration.init(
+                    token: credentials!.password,
                     timeoutInterval: platform.configuration.timeout
                 )
-
-            if configuration != nil {
-                config = configuration!
             }
 
             // Initialize the OpenAI model
             self.wrappedModel = OpenAI(
-                configuration: config
+                configuration: configuration
             )
         }
         
