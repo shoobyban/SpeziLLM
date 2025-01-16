@@ -21,36 +21,50 @@ extension LLMOpenAISession {
         await MainActor.run {
             self.state = .loading
         }
-        
+
         // Overwrite API token if passed
         if let overwritingToken = schema.parameters.overwritingToken {
+            var config = Configuration.init(
+                token: overwritingToken,
+                timeoutInterval: platform.configuration.timeout
+            )
+
+            if configuration != nil {
+                config = configuration!
+            }
+
             self.wrappedModel = OpenAI(
-                configuration: .init(
-                    token: overwritingToken,
-                    timeoutInterval: platform.configuration.timeout
-                )
+                configuration: config
             )
         } else {
             // If token is present within the Spezi `SecureStorage`
-            guard let credentials = try? secureStorage.retrieveCredentials(
-                LLMOpenAIConstants.credentialsUsername,
-                server: LLMOpenAIConstants.credentialsServer
-            ) else {
-                Self.logger.error("""
-                SpeziLLMOpenAI: Missing OpenAI API token.
-                Please ensure that the token is either passed directly via the Spezi `Configuration`
-                or stored within the `SecureStorage` via the `LLMOpenAITokenSaver` before dispatching the first inference.
-                """)
-                await finishGenerationWithError(LLMOpenAIError.missingAPIToken, on: continuation)
-                return false
+            if configuration == nil {
+                guard let credentials = try? secureStorage.retrieveCredentials(
+                    LLMOpenAIConstants.credentialsUsername,
+                    server: LLMOpenAIConstants.credentialsServer
+                ) else {
+                    Self.logger.error("""
+                    SpeziLLMOpenAI: Missing OpenAI API token.
+                    Please ensure that the token is either passed directly via the Spezi `Configuration`
+                    or stored within the `SecureStorage` via the `LLMOpenAITokenSaver` before dispatching the first inference.
+                    """)
+                    await finishGenerationWithError(LLMOpenAIError.missingAPIToken, on: continuation)
+                    return false
+                }
             }
             
-            // Initialize the OpenAI model
-            self.wrappedModel = OpenAI(
-                configuration: .init(
+            var config = Configuration.init(
                     token: credentials.password,
                     timeoutInterval: platform.configuration.timeout
                 )
+
+            if configuration != nil {
+                config = configuration!
+            }
+
+            // Initialize the OpenAI model
+            self.wrappedModel = OpenAI(
+                configuration: config
             )
         }
         
